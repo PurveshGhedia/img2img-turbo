@@ -5,9 +5,10 @@ from diffusers import DDPMScheduler
 
 
 def make_1step_sched():
-    noise_scheduler_1step = DDPMScheduler.from_pretrained("stabilityai/sd-turbo", subfolder="scheduler")
-    noise_scheduler_1step.set_timesteps(1, device="cuda")
-    noise_scheduler_1step.alphas_cumprod = noise_scheduler_1step.alphas_cumprod.cuda()
+    noise_scheduler_1step = DDPMScheduler.from_pretrained(
+        "stabilityai/sd-turbo", subfolder="scheduler")
+    noise_scheduler_1step.set_timesteps(1, device="cpu")
+    noise_scheduler_1step.alphas_cumprod = noise_scheduler_1step.alphas_cumprod.cpu()
     return noise_scheduler_1step
 
 
@@ -34,10 +35,12 @@ def my_vae_decoder_fwd(self, sample, latent_embeds=None):
     sample = self.mid_block(sample, latent_embeds)
     sample = sample.to(upscale_dtype)
     if not self.ignore_skip:
-        skip_convs = [self.skip_conv_1, self.skip_conv_2, self.skip_conv_3, self.skip_conv_4]
+        skip_convs = [self.skip_conv_1, self.skip_conv_2,
+                      self.skip_conv_3, self.skip_conv_4]
         # up
         for idx, up_block in enumerate(self.up_blocks):
-            skip_in = skip_convs[idx](self.incoming_skip_acts[::-1][idx] * self.gamma)
+            skip_in = skip_convs[idx](
+                self.incoming_skip_acts[::-1][idx] * self.gamma)
             # add skip
             sample = sample + skip_in
             sample = up_block(sample, latent_embeds)
@@ -60,7 +63,8 @@ def download_url(url, outf):
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get('content-length', 0))
         block_size = 1024  # 1 Kibibyte
-        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+        progress_bar = tqdm(total=total_size_in_bytes,
+                            unit='iB', unit_scale=True)
         with open(outf, 'wb') as file:
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
